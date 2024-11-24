@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 )
 
 type Todo struct {
@@ -12,9 +13,9 @@ type Todo struct {
 }
 
 var todos []Todo
+var mutex sync.Mutex
 
 func main() {
-
 	todos = []Todo{}
 
 	http.HandleFunc("/", ToDoListHandler)
@@ -41,16 +42,17 @@ func ToDoListHandler(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodGet:
 		// Return the list of todos
+		mutex.Lock()
 		w.WriteHeader(http.StatusOK)
 		err := json.NewEncoder(w).Encode(todos)
 		if err != nil {
 			// Handle error
 			fmt.Println("Error encoding response: ", err)
 		}
+		mutex.Unlock()
 
 	case http.MethodPost:
 		// Create a new todo
-
 		var todo Todo
 		err := json.NewDecoder(r.Body).Decode(&todo)
 		if err != nil {
@@ -65,10 +67,12 @@ func ToDoListHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		mutex.Lock()
 		todos = append(todos, todo)
+		mutex.Unlock()
 
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(todos)
+		json.NewEncoder(w).Encode(todo)
 
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)

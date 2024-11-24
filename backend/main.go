@@ -43,11 +43,11 @@ func ToDoListHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		// Return the list of todos
 		mutex.Lock()
-		w.WriteHeader(http.StatusOK)
 		err := json.NewEncoder(w).Encode(todos)
 		if err != nil {
 			// Handle error
 			fmt.Println("Error encoding response: ", err)
+			w.WriteHeader(http.StatusInternalServerError)
 		}
 		mutex.Unlock()
 
@@ -71,8 +71,12 @@ func ToDoListHandler(w http.ResponseWriter, r *http.Request) {
 		todos = append(todos, todo)
 		mutex.Unlock()
 
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(todo)
+		err = json.NewEncoder(w).Encode(todo)
+		if err != nil {
+			fmt.Println("Error encoding response: ", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
